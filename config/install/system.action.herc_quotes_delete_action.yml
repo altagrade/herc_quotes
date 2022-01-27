@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - herc_quotes
+  module:
+    - entity
+id: herc_quotes_delete_action
+label: 'Delete job quote'
+type: herc_quotes
+plugin: 'entity_delete_action:herc_quotes'

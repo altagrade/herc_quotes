@@ -1,0 +1,22 @@
+herc_quotes.configuration:
+  title: Job Quotes
+  route_name: herc_quotes.configuration
+  parent: commerce.configuration
+
+herc_quotes.admin_settings:
+  title: Job Quotes settings
+  route_name: herc_quotes.admin_settings
+  parent: herc_quotes.configuration
+  description: 'Configure general job quotes behavior.'
+
+entity.herc_quotes_type.collection:
+  title: Job Quotes types
+  route_name: entity.herc_quotes_type.collection
+  parent: herc_quotes.configuration
+  description: 'Manage your job quotes types.'
+
+entity.herc_quotes.collection:
+  title: Job Quotes
+  route_name: entity.herc_quotes.collection
+  parent: commerce.admin_commerce
+  description: 'Manage your job quotes.'

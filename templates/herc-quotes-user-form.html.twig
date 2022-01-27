@@ -1,0 +1,34 @@
+{#
+/**
+ * @file
+ * Template for the jobquote user form.
+ *
+ * Available variables:
+ * - form: The form.
+ *
+ * @ingroup themeable
+ */
+#}
+<div class="quotes-header"><div>SKU</div><div>Product</div><div>Price</div><div>Quantity</div><div>Actions</div></div>
+<div class="jobquote-user-form clearfix">
+  <div class="jobquote-items">
+    {% for key, item in form.items if key|first != '#' %}
+      <div class="jobquote-item">
+        <div class="jobquote-item__entity">
+          {{ item.entity }}
+        </div>
+        <div class="jobquote-item__details">
+          {{ item.details }}
+          {{ item.details_edit }}
+        </div>
+        <div class="jobquote-item__actions">
+          {{ item.actions }}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  <div id="add-all">
+  {{ form.header }}
+  {{ form|without('header', 'items') }}
+  </div>
+</div>

@@ -1,0 +1,79 @@
+herc_quotes.settings:
+  type: config_object
+  label: 'Jobquote settings'
+  mapping:
+    allow_multiple:
+      type: boolean
+      label: 'Allow multiple jobquotes'
+    default_type:
+      type: string
+      label: 'Default jobquote type'
+    view_modes:
+      type: sequence
+      label: 'View modes'
+      sequence:
+        view_mode:
+          type: string
+          label: 'View mode'
+
+herc_quotes.herc_quotes_type.*:
+  type: config_entity
+  label: 'Jobquote type'
+  mapping:
+    label:
+      type: label
+      label: 'Label'
+    id:
+      type: string
+      label: 'Machine-readable name'
+    allowAnonymous:
+      type: boolean
+      label: 'Allow anonymous jobquotes'
+
+block.settings.herc_quotes:
+  type: block_settings
+  label: 'Jobquote block'
+  mapping:
+    dropdown:
+      type: boolean
+      label: 'Display jobquote contents in dropdown'
+
+field.formatter.third_party.herc_quotes:
+  type: mapping
+  label: 'Jobquote settings'
+  mapping:
+    show_jobquote:
+      type: boolean
+      label: 'Show jobquote button'
+    weight_jobquote:
+      type: integer
+      label: 'Modify jobquote button sort order'
+    label_jobquote:
+      type: text
+      label: 'Override the button label'
+    region:
+      type: text
+      label: 'Region'
+
+commerce_product.commerce_product_type.*.third_party.herc_quotes:
+  type: field.formatter.third_party.herc_quotes
+
+views.field.herc_quotes_item_move_to_cart:
+  type: views.field.field
+  mapping:
+    keep_item:
+      type: boolean
+      label: 'Keep item'
+    combine:
+      type: boolean
+      label: 'Whether to attempt to combine order items containing the same product variation'
+
+views.field.herc_quotes_order_item_move_to_jobquote:
+  type: views.field.field
+  mapping:
+    keep_item:
+      type: boolean
+      label: 'Keep item'
+    combine:
+      type: boolean
+      label: 'Whether to attempt to combine jobquote items containing the same product variation'

@@ -1,0 +1,8 @@
+name: Hercules Job Quotes
+type: module
+description: Enables customers to add products to job quotes.
+package: Hercules Industries
+core_version_requirement: ^8.9 || ^9
+dependencies:
+  - commerce:commerce
+  - commerce:commerce_cart

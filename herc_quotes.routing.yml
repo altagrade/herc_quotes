@@ -1,0 +1,39 @@
+herc_quotes.page:
+  path: '/quotes'
+  defaults:
+    _controller: '\Drupal\herc_quotes\Controller\JobquoteController::jobquotePage'
+    _title: 'Job quote'
+  requirements:
+    _permission: 'access jobquote'
+
+herc_quotes.user_page:
+  path: '/user/{user}/quotes'
+  defaults:
+    _form: '\Drupal\herc_quotes\Form\JobquoteListForm'
+    _title: 'Job quotes'
+  requirements:
+    _permission: 'access jobquote'
+
+herc_quotes.admin_settings:
+  path: '/admin/commerce/config/jobquote-settings'
+  defaults:
+    _form: '\Drupal\herc_quotes\Form\SettingsForm'
+    _title: 'Job quotes settings'
+  requirements:
+    _permission: 'administer herc_quotes'
+
+herc_quotes.configuration:
+  path: '/admin/commerce/config/jobquotes'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Job quotes'
+  requirements:
+    _permission: 'administer herc_quotes'
+
+herc_quotes.add_multiple:
+  path: '/jobquote/add-multiple/{product_id}'
+  defaults:
+    _title: 'Add product to job quote'
+    _form: '\Drupal\herc_quotes\Form\JobquoteAddProductForm'
+  requirements:
+    _permission: 'access jobquote'

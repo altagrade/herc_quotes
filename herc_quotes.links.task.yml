@@ -1,0 +1,20 @@
+entity.herc_quotes.collection:
+  route_name: entity.herc_quotes.collection
+  base_route: entity.herc_quotes.collection
+  title: 'Job Quotes'
+
+entity.herc_quotes.items:
+  route_name: 'entity.herc_quotes_item.collection'
+  base_route: 'entity.herc_quotes.edit_form'
+  title: 'Job quote items'
+  weight: -10
+
+entity.herc_quotes.user_page:
+  route_name: herc_quotes.user_page
+  base_route: entity.user.canonical
+  title: 'Job quotes'
+
+entity.herc_quotes_type.edit_form:
+  route_name: entity.herc_quotes_type.edit_form
+  base_route: entity.herc_quotes_type.edit_form
+  title: 'Edit'

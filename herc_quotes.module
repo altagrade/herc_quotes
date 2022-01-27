@@ -1,0 +1,398 @@
+<?php
+
+/**
+ * @file
+ * Defines the Jobquote entity and associated features.
+ */
+
+use Drupal\commerce\PurchasableEntityInterface;
+use Drupal\herc_quotes\Entity\JobquoteInterface;
+use Drupal\herc_quotes\Entity\JobquoteType;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\PrependCommand;
+use Drupal\Core\Ajax\ReplaceCommand;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FormatterInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Url;
+/**
+ * Implements hook_user_login().
+ */
+function herc_quotes_user_login($account) {
+  /** @var \Drupal\herc_quotes\JobquoteProviderInterface $jobquote_provider */
+  $jobquote_provider = \Drupal::service('herc_quotes.jobquote_provider');
+  /** @var \Drupal\herc_quotes\JobquoteAssignmentInterface $jobquote_assignment */
+  $jobquote_assignment = \Drupal::service('herc_quotes.jobquote_assignment');
+
+  // Assign the anonymous user's jobquotes to the logged-in account.
+  // This will only affect the jobquotes that are in the user's session.
+  $anonymous = new AnonymousUserSession();
+  $jobquotes = $jobquote_provider->getJobquotes($anonymous);
+  $jobquote_assignment->assignMultiple($jobquotes, $account);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ *
+ * Removes deleted jobquotes from the anonymous user's session.
+ */
+function herc_quotes_herc_quotes_delete(JobquoteInterface $jobquote) {
+  /** @var \Drupal\herc_quotes\JobquoteSessionInterface $jobquote_session */
+  $jobquote_session = \Drupal::service('herc_quotes.jobquote_session');
+  $jobquote_session->deleteJobquoteId($jobquote->id());
+}
+
+/**
+ * Implements hook_theme().
+ */
+function herc_quotes_theme($existing, $type, $theme, $path) {
+  return [
+    'herc_quotes' => [
+      'render element' => 'elements',
+    ],
+    'herc_quotes_block' => [
+      'variables' => [
+        'jobquote_entities' =>NULL,
+        'content' => NULL,
+        'link' => NULL
+      ],
+    ],
+    'herc_quotes_empty_page' => [
+      'render element' => 'element',
+    ],
+    'herc_quotes_share_mail' => [
+      'variables' => [
+        'jobquote_entity' => NULL,
+      ],
+    ],
+    'herc_quotes_user_form' => [
+      'render element' => 'form',
+    ],
+    'herc_quotes_item_details' => [
+      'variables' => [
+        'jobquote_item_entity' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ *
+ * - Changes the label of the purchasable_entity field to the label of the
+ *   target type (e.g. 'Product variation').
+ * - Forbids editing the purchasable_entity once the jobquote item is no longer
+ *   new.
+ */
+function herc_quotes_field_widget_form_alter(&$element, FormStateInterface $form_state, $context) {
+  /** @var \Drupal\Core\Field\FieldItemListInterface $items */
+  $items = $context['items'];
+  /** @var \Drupal\Core\Field\FieldDefinitionInterface $field_definition */
+  $field_definition = $items->getFieldDefinition();
+  $field_name = $field_definition->getName();
+  $entity_type = $field_definition->getTargetEntityTypeId();
+  if ($field_name == 'purchasable_entity' && $entity_type == 'herc_quotes_item') {
+    if (!empty($element['target_id']['#target_type'])) {
+      $target_type = \Drupal::entityTypeManager()
+        ->getDefinition($element['target_id']['#target_type']);
+      $element['target_id']['#title'] = $target_type->getLabel();
+      if (!$items->getEntity()->isNew()) {
+        $element['#disabled'] = TRUE;
+      }
+    }
+  }
+}
+
+/**
+ * Prepares variables for jobquote templates.
+ *
+ * Default template: commerce-jobquote.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - elements: An associative array containing rendered fields.
+ *   - attributes: HTML attributes for the containing element.
+ */
+function template_preprocess_herc_quotes(array &$variables) {
+  /** @var Drupal\herc_quotes\Entity\JobquoteInterface $jobquote */
+  $jobquote = $variables['elements']['#herc_quotes'];
+
+  $variables['jobquote_entity'] = $jobquote;
+  $variables['jobquote'] = [];
+  foreach (Element::children($variables['elements']) as $key) {
+    $variables['jobquote'][$key] = $variables['elements'][$key];
+  }
+}
+
+/**
+ * Prepares variables for the jobquote share email.
+ *
+ * Default template: commerce-jobquote-share-mail.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing the template variables.
+ */
+function template_preprocess_herc_quotes_share_mail(array &$variables) {
+  /** @var Drupal\herc_quotes\Entity\JobquoteInterface $jobquote */
+  $jobquote = $variables['jobquote_entity'];
+  $jobquote_url = $jobquote->toUrl('canonical', ['absolute' => TRUE]);
+
+  $variables['jobquote_url'] = $jobquote_url->toString();
+}
+
+/**
+ * Implements hook_theme_suggestions_herc_quotes().
+ */
+function herc_quotes_theme_suggestions_herc_quotes(array $variables) {
+  return _commerce_entity_theme_suggestions('herc_quotes', $variables);
+}
+
+/**
+ * Implements hook_views_data_alter().
+ */
+function herc_quotes_views_data_alter(array &$data) {
+  $data['commerce_order_item']['move_to_jobquote']['field'] = [
+    'title' => t('Move/copy to job quote button'),
+    'help' => t('Adds a button for moving or copying the order item to the job quote.'),
+    'id' => 'herc_quotes_order_item_move_to_jobquote',
+  ];
+}
+
+/**
+ * Implements hook_field_formatter_third_party_settings_form().
+ *
+ * Extends the add to cart formatter form with a show jobquote button.
+ */
+function herc_quotes_field_formatter_third_party_settings_form(FormatterInterface $plugin, FieldDefinitionInterface $field_definition, $view_mode, $form, FormStateInterface $form_state) {
+  $element = [];
+
+  if ($plugin->getPluginId() == 'commerce_add_to_cart') {
+    $element['show_jobquote'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Show job quote button'),
+      '#default_value' => $plugin->getThirdPartySetting('herc_quotes', 'show_jobquote', TRUE),
+    ];
+    $element['weight_jobquote'] = [
+      '#type' => 'number',
+      '#title' => t('Change the weight of the job quote button.'),
+      '#default_value' => $plugin->getThirdPartySetting('herc_quotes', 'weight_jobquote', 99),
+    ];
+    $element['label_jobquote'] = [
+      '#type' => 'textfield',
+      '#title' => t('Override the job quote button label'),
+      '#default_value' => $plugin->getThirdPartySetting('herc_quotes', 'label_jobquote'),
+    ];
+  }
+  return $element;
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary_alter().
+ *
+ * Shows in the add-to-cart summary whether or not the jobquote is enabled.
+ */
+function herc_quotes_field_formatter_settings_summary_alter(&$summary, $context) {
+  /** @var \Drupal\Core\Field\FormatterInterface $formatter */
+  $formatter = $context['formatter'];
+  if ($formatter->getPluginId() == 'commerce_add_to_cart') {
+    if ($formatter->getThirdPartySetting('herc_quotes', 'show_jobquote')) {
+      $summary[] = t('Jobquote enabled.');
+    }
+    else {
+      $summary[] = t('Jobquote disabled.');
+    }
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for 'commerce_order_item_add_to_cart_form'.
+ */
+function herc_quotes_form_commerce_order_item_add_to_cart_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if (!\Drupal::currentUser()->hasPermission('access jobquote')) {
+    return;
+  }
+  /** @var \Drupal\commerce_product\Entity\ProductInterface $product */
+  $product = $form_state->get('product');
+  if (!$product) {
+    // @todo support other entities than commerce_product (e.g. commerce_product_bundle).
+    return;
+  }
+
+  // Grab the view mode third party settings.
+  $display = EntityViewDisplay::collectRenderDisplay($product, $form_state->get('view_mode'));
+  $display_content = $display->get('content');
+  $settings = !empty($display_content['variations']['third_party_settings']['herc_quotes']) ? $display_content['variations']['third_party_settings']['herc_quotes'] : [];
+
+  $config = \Drupal::config('herc_quotes.settings');
+  /** @var \Drupal\herc_quotes\Entity\JobquoteTypeInterface $default_jobquote_type */
+  $default_jobquote_type = JobquoteType::load($config->get('default_type'));
+
+  // Add the button.
+  if (empty($settings['show_jobquote']) || !$default_jobquote_type) {
+    return;
+  }
+  $allow_anonymous = $default_jobquote_type->isAllowAnonymous();
+  $user_is_anonymous = \Drupal::currentUser()->isAnonymous();
+
+  $form['#id'] = Html::getId($form_state->getBuildInfo()['form_id']);
+
+  $weight = ($settings['weight_jobquote'] != "") ? $settings['weight_jobquote'] : 99;
+  /** @var \Drupal\herc_quotes\JobquoteProviderInterface $jobquote_provider */
+  $jobquote_provider = \Drupal::service('herc_quotes.jobquote_provider');
+
+  //@todo: probably a good idea to add some caching as this hook is called for every add to cart button.
+  if (($jobquotes = $jobquote_provider->getJobquotes()) && count($jobquotes) > 1) {
+      $link_url = Url::fromRoute('herc_quotes.add_multiple', ['product_id' => $product->id()]);
+      $form['actions']['jobquote'] = [
+          '#type' => 'link',
+          '#title' => $settings['label_jobquote'] ?: t('Add to job quote'),
+          '#url' => $link_url,
+          '#weight' => $weight,
+          '#limit_validation_errors' => [],
+          '#access' => ($allow_anonymous && $user_is_anonymous) || !$user_is_anonymous,
+          '#attributes' => [
+              'class' => ['use-ajax', 'button', 'button--add-to-quote'],
+              'data-dialog-type' => 'modal'
+              ],
+        ];
+    } else {
+      $form['actions']['jobquote'] = [
+          '#type' => 'submit',
+          '#value' => $settings['label_jobquote'] ?: t('Add to job quote'),
+          '#weight' => $weight,
+          '#submit' => ['herc_quotes_add_to_jobquote_form_submit'],
+          '#limit_validation_errors' => [],
+          '#access' => ($allow_anonymous && $user_is_anonymous) || !$user_is_anonymous,
+          '#ajax' => [
+              'callback' => 'herc_quotes_add_to_jobquote_form_ajax',
+            ],
+        ];
+    }
+
+  if (isset($form['purchased_entity'])) {
+    $form['actions']['jobquote']['#limit_validation_errors'] = [['purchased_entity']];
+  }
+
+  // Add job quote entity display as cache tag. So that on changing settings
+  // or allow or disallow anonymous job quote we can react on it.
+  $form['#cache']['tags'][] = $default_jobquote_type->getConfigDependencyName();
+}
+
+/**
+ * Ajax callback for the add to job quote form.
+ *
+ * @param array $form
+ *   The form.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The form state.
+ *
+ * @return \Drupal\Core\Ajax\AjaxResponse
+ *   The ajax response.
+ */
+function herc_quotes_add_to_jobquote_form_ajax(array $form, FormStateInterface $form_state) {
+  // Re-render the jobquote block. The plugin doesn't have configuration,
+  // so it can be used directly instead of loading the parent config entity.
+  $block_manager = \Drupal::service('plugin.manager.block');
+  /** @var \Drupal\Core\Block\BlockPluginInterface $jobquote_block */
+  $jobquote_block = $block_manager->createInstance('herc_quotes', []);
+  $build = $jobquote_block->build();
+
+  $response = new AjaxResponse();
+  $response->addCommand(new ReplaceCommand('.jobquote-block', $build));
+  $response->addCommand(new ReplaceCommand('[data-drupal-selector="' . $form['#attributes']['data-drupal-selector'] . '"]', $form));
+  $response->addCommand(new PrependCommand('[data-drupal-selector="' . $form['#attributes']['data-drupal-selector'] . '"]', ['#type' => 'status_messages']));
+
+  return $response;
+}
+
+/**
+ * Form submit handler for add-to-jobquote actions.
+ *
+ * Note that since we must fire this function off using a static form_alter
+ * call, we have no choice but to bring in the services and objects that we
+ * need. Normally we would create a class and use dependency injection to get at
+ * all of this context. We are very open to a better way of implementing this
+ * hijack of the add to cart form.
+ *
+ * @param array $form
+ *   The form.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The form state.
+ */
+function herc_quotes_add_to_jobquote_form_submit(array $form, FormStateInterface $form_state) {
+  /** @var \Drupal\herc_quotes\JobquoteManagerInterface $jobquote_manager */
+  $jobquote_manager = \Drupal::service('herc_quotes.jobquote_manager');
+  /** @var \Drupal\herc_quotes\JobquoteProviderInterface $jobquote_provider */
+  $jobquote_provider = \Drupal::service('herc_quotes.jobquote_provider');
+  /** @var \Drupal\commerce_cart\Form\AddToCartForm $add_to_cart_form */
+  $add_to_cart_form = $form_state->getFormObject();
+  /** @var \Drupal\commerce_order\Entity\OrderItem $order_item */
+  $order_item = $add_to_cart_form->buildEntity($form, $form_state);
+  $purchasable_entity = $order_item->getPurchasedEntity();
+  $quantity = $order_item->getQuantity();
+  // Determine the jobquote type to use.
+  $jobquote_type = \Drupal::config('herc_quotes.settings')->get('default_type') ?: 'default';
+  // Use existing or create a new jobquote.
+  $jobquote = $jobquote_provider->getJobquote($jobquote_type);
+  if (!$jobquote) {
+    $jobquote = $jobquote_provider->createJobquote($jobquote_type);
+  }
+  $combine = $form_state->get(['settings', 'combine']);
+
+  $jobquote_manager->addEntity($jobquote, $purchasable_entity, $quantity, $combine);
+}
+
+/**
+ * Implements hook_entity_bundle_info().
+ */
+function herc_quotes_entity_bundle_info() {
+  $purchasable_entity_types = herc_quotes_get_purchasable_entity_types();
+  $bundles = [];
+  foreach ($purchasable_entity_types as $entity_type_id => $entity_type) {
+    $bundles['herc_quotes_item'][$entity_type_id] = [
+      'label' => $entity_type->getLabel(),
+      'translatable' => FALSE,
+      'provider' => 'herc_quotes',
+    ];
+  }
+  return $bundles;
+}
+
+/**
+ * Gets the purchasable entity types.
+ *
+ * @return \Drupal\Core\Entity\EntityTypeInterface[]
+ *   The purchasable entity types, keyed by entity type ID.
+ */
+function herc_quotes_get_purchasable_entity_types() {
+  $entity_types = \Drupal::entityTypeManager()->getDefinitions();
+  return array_filter($entity_types, function (EntityTypeInterface $entity_type) {
+    return $entity_type->entityClassImplements(PurchasableEntityInterface::class);
+  });
+}
+
+/**
+ * Implements hook_entity_delete().
+ *
+ * Queues job quote items for deletion when a purchasable entity is deleted.
+ */
+function herc_quotes_entity_delete(EntityInterface $entity) {
+  if ($entity->getEntityType()->entityClassImplements(PurchasableEntityInterface::class)) {
+    $jobquote_item_storage = \Drupal::entityTypeManager()->getStorage('herc_quotes_item');
+    $query = $jobquote_item_storage->getQuery()
+      ->condition('type', $entity->getEntityTypeId())
+      ->condition('purchasable_entity', $entity->id());
+    $result = $query->execute();
+
+    $queue = \Drupal::queue('herc_quotes_item_delete');
+    foreach (array_chunk($result, 25) as $ids) {
+      $queue->createItem(['ids' => $ids]);
+    }
+  }
+}

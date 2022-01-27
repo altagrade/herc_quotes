@@ -1,0 +1,8 @@
+access jobquote:
+  title: 'Access job quote'
+  description: 'View the job quotes page.'
+
+'administer herc_quotes_type':
+  title: 'Administer job quote types'
+  description: 'Maintain the types of job quotes available and the fields that are associated with those types.'
+  'restrict access': TRUE

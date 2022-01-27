@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - herc_quotes.herc_quotes_type.default
+  module:
+    - user
+id: herc_quotes.default.default
+targetEntityType: herc_quotes
+bundle: default
+mode: default
+content:
+  jobquote_items:
+    type: entity_reference_entity_view
+    weight: 0
+    settings:
+      view_mode: default
+      link: false
+    third_party_settings: {  }
+    label: hidden
+hidden:
+  shipping_profile: true

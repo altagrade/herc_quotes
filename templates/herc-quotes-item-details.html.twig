@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Template for the jobquote item details.
+ *
+ * Do not remove or modify the wrapping div, it is used by
+ * JobquoteItemDetailsForm::successfulAjaxSubmit().
+ *
+ * Available variables:
+ * - jobquote_item_entity: The jobquote item entity.
+ *
+ * @ingroup themeable
+ */
+#}
+<div id="jobquote-item-details-{{ jobquote_item_entity.id }}">
+  <div class="jobquote-item__quantity">
+    {{ jobquote_item_entity.getQuantity|number_format }}
+  </div>
+  {% if jobquote_item_entity.getComment %}
+    <div class="jobquote-item__comment">
+      {{ jobquote_item_entity.getComment }}
+    </div>
+  {% endif %}
+</div>

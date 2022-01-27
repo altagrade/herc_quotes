@@ -1,0 +1,38 @@
+services:
+  cache_context.jobquote:
+    class: Drupal\herc_quotes\Cache\Context\JobquoteCacheContext
+    arguments: ['@current_user', '@herc_quotes.jobquote_provider']
+    tags:
+      - { name: cache.context }
+
+  herc_quotes.jobquote_assignment:
+    class: Drupal\herc_quotes\JobquoteAssignment
+    arguments: ['@entity_type.manager', '@event_dispatcher', '@config.factory', '@herc_quotes.jobquote_manager']
+
+  herc_quotes.jobquote_session:
+    class: Drupal\herc_quotes\JobquoteSession
+    arguments: ['@session']
+
+  herc_quotes.jobquote_provider:
+    class: Drupal\herc_quotes\JobquoteProvider
+    arguments: ['@entity_type.manager', '@current_user', '@herc_quotes.jobquote_session', '@config.factory']
+
+  herc_quotes.jobquote_manager:
+    class: Drupal\herc_quotes\JobquoteManager
+    arguments: ['@entity_type.manager', '@event_dispatcher']
+
+  herc_quotes.jobquote_subscriber:
+    class: Drupal\herc_quotes\EventSubscriber\JobquoteEventSubscriber
+    arguments: ['@messenger', '@string_translation']
+    tags:
+      - { name: event_subscriber }
+
+  herc_quotes.jobquote_share_mail:
+    class: Drupal\herc_quotes\Mail\JobquoteShareMail
+    arguments: ['@config.factory', '@commerce.mail_handler']
+
+  access_check.entity.herc_quotes_item.details_form:
+    class: Drupal\herc_quotes\Access\JobquoteItemDetailsAccessCheck
+    arguments: ['@herc_quotes.jobquote_session', '@current_route_match']
+    tags:
+      - { name: access_check, applies_to: _jobquote_item_details_access_check }

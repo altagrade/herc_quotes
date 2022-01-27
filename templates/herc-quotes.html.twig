@@ -1,0 +1,22 @@
+{#
+/**
+ * @file
+ * Default jobquote template.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper.
+ * - jobquote: The rendered jobquote fields.
+ *   Use 'jobquote' to print them all, or print a subset such as
+ *   'jobquote.name'. Use the following code to exclude the
+ *   printing of a given field:
+ *   @code
+ *   {{ jobquote|without('name') }}
+ *   @endcode
+ * - jobquote_entity: The jobquote entity.
+ *
+ * @ingroup themeable
+ */
+#}
+<div{{ attributes }}>
+  {{ jobquote }}
+</div>

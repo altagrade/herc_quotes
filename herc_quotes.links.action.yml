@@ -1,0 +1,17 @@
+entity.herc_quotes.add_page:
+  route_name: entity.herc_quotes.add_page
+  title: 'Add job quote'
+  appears_on:
+    - entity.herc_quotes.collection
+
+entity.herc_quotes_item.add_form:
+  route_name: entity.herc_quotes_item.add_form
+  title: 'Add item'
+  appears_on:
+    - entity.herc_quotes_item.collection
+
+entity.herc_quotes_type.add_form:
+  route_name: entity.herc_quotes_type.add_form
+  title: 'Add job quote type'
+  appears_on:
+    - entity.herc_quotes_type.collection

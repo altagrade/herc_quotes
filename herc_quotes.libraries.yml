@@ -1,0 +1,5 @@
+user:
+  version: VERSION
+  css:
+    layout:
+      css/herc_quotes.user.css: {}

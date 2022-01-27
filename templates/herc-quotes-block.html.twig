@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * Template for the jobquote block.
+ *
+ * Available variables:
+ * - content:
+ * [
+ *    - name: Name of the jobquote.
+ *    - count: The number of items in the jobquote.
+ *    - count_text: The text representing the number of items in the jobquote.
+ *    - url: Direct url to the jobquote view page.
+ * ]
+ * - jobquote_entities: The jobquote entities.
+ * - link: Link object directed to the jobquote list form.
+ *
+ * @ingroup themeable
+ */
+#}
+<div{{ attributes.addClass('jobquote-block') }}>
+    {% for jobquote in content %}
+        <div class="jobquote-block__item">
+            <a class="jobquote-block__link" href="{{ jobquote.url }}">
+                <span class="jobquote-block__count">{{ jobquote.count_text }}</span>
+              </a>
+          </div>
+      {% endfor %}
+    {{ link }}
+</div>
